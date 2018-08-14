@@ -26,7 +26,7 @@ source <path_to_virtualenv>/bin/activate
 ```
 If everything is fine, you'll see content in your xlsx-file:
 
-![alt-текст](https://github.com/nicko858/10_coursera/xlsx.jpg "Текст заголовка логотипа 1")
+![alt-текст](https://github.com/nicko858/10_coursera/blob/master/xlsx.jpg "Текст заголовка логотипа 1")
 
 
 
