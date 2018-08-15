@@ -22,11 +22,11 @@ source <path_to_virtualenv>/bin/activate
 ```
 - Run script with virtualenv-interpreter
 ```bash
-<path_to_virtualenv>/bin/python3.5 check_sites_health.py site_list.txt
+<path_to_virtualenv>/bin/python3.5 coursera.py course_list.xlsx
 ```
 If everything is fine, you'll see content in your xlsx-file:
 
-![alt-текст](https://github.com/nicko858/10_coursera/blob/master/xlsx.jpg "Текст заголовка логотипа 1")
+![alt-текст](https://github.com/nicko858/10_coursera/blob/master/xlsx.jpg)
 
 
 
