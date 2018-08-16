@@ -11,12 +11,10 @@ from openpyxl.styles import PatternFill
 from os import access
 from os import W_OK
 from os import path
-from course_parser import get_course_info
-
-
-def check_file_extension(extensions, file_path):
-    file_name, file_extension = path.splitext(file_path)
-    return file_extension in extensions
+from os import getcwd
+from collections import OrderedDict
+from course_parser import (get_user_score, get_date_start, get_course_language,
+                           get_course_name, get_weeks_count)
 
 
 def check_file_path(file_path):
@@ -29,11 +27,6 @@ def check_file_path(file_path):
         raise ArgumentTypeError(
             "The '{}' is not a file!".format(file_path)
         )
-    elif not check_file_extension(".xlsx", file_path):
-        raise ArgumentTypeError("Invalid file extension!\n"
-                                "The valid extension is {}".format(
-                                 ".xlsx"
-                                 ))
     else:
         return file_path
 
@@ -47,21 +40,41 @@ def get_args():
     parser.add_argument(
         "output_file_path",
         type=check_file_path,
+        nargs='?',
+        default=path.join(getcwd(), "coursera.xlsx"),
         help="Specify the path to output file"
     )
     args = parser.parse_args()
     return args
 
 
-def get_courses_list(xml_feed_url, courses_count):
+def connect_to_url(url):
     try:
-        response = requests.get(xml_feed_url)
+        response = requests.get(url)
+        return response.content
     except (ConnectionError, HTTPError, ReadTimeout):
         return None
-    sitemap_index = BeautifulSoup(response.content, "html.parser")
-    urls = [element.text for element in sitemap_index.findAll("loc")]
+
+
+def get_random_courses_urls_list(sitemap_content, courses_count):
+    soup = BeautifulSoup(sitemap_content, "html.parser")
+    urls = [element.text for element in soup.findAll("loc")]
     courses_list = random.sample(urls, courses_count)
     return courses_list
+
+
+def get_course_info(course_url):
+    course_content = connect_to_url(course_url)
+    if not course_content:
+        return None
+    course = BeautifulSoup(course_content, "lxml")
+    course_info = OrderedDict()
+    course_info["course_name"] = get_course_name(course)
+    course_info["language"] = get_course_language(course)
+    course_info["date_start"] = get_date_start(course)
+    course_info["weeks_count"] = get_weeks_count(course)
+    course_info["user_score"] = get_user_score(course)
+    return course_info
 
 
 def make_xlsx_template():
@@ -113,15 +126,17 @@ def save_output_courses_to_xlsx(wb, filepath):
 if __name__ == "__main__":
     args = get_args()
     output_file_path = args.output_file_path
-    courses_list = get_courses_list(
-        "https://www.coursera.org/sitemap~www~courses.xml",
-        courses_count=20
-    )
-    if not courses_list:
+    sitemap_content = connect_to_url(
+        "https://www.coursera.org/sitemap~www~courses.xml")
+    if not sitemap_content:
         exit("The www.coursera.org is unavailable!")
+    courses_urls_list = get_random_courses_urls_list(
+        sitemap_content,
+        courses_count=3
+    )
     courses_info = {}
-    for course in courses_list:
-        courses_info[course] = get_course_info(course)
+    for course_url in courses_urls_list:
+        courses_info[course_url] = get_course_info(course_url).values()
     workbook, worksheet = make_xlsx_template()
     xlsx_courses_info = output_courses_info_to_xlsx(
         courses_info,
