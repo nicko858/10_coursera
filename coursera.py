@@ -48,7 +48,7 @@ def get_args():
     return args
 
 
-def connect_to_url(url):
+def fetch_content_from_url(url):
     try:
         response = requests.get(url)
         return response.content
@@ -56,15 +56,14 @@ def connect_to_url(url):
         return None
 
 
-def get_random_courses_urls_list(sitemap_content, courses_count):
+def get_random_courses_urls_list(sitemap_content, courses_count=20):
     soup = BeautifulSoup(sitemap_content, "html.parser")
     urls = [element.text for element in soup.findAll("loc")]
     courses_list = random.sample(urls, courses_count)
     return courses_list
 
 
-def get_course_info(course_url):
-    course_content = connect_to_url(course_url)
+def get_course_info(course_content):
     if not course_content:
         return None
     course = BeautifulSoup(course_content, "lxml")
@@ -103,15 +102,13 @@ def make_xlsx_template():
 def output_courses_info_to_xlsx(courses_data, workbook, worksheet):
     for url, course_info in courses_data.items():
         try:
-            (name, language, nearest_date,
-             weeks_count, user_score) = course_info
             next_row = [
                 url,
-                name,
-                language,
-                nearest_date,
-                weeks_count,
-                user_score
+                course_info["course_name"],
+                course_info["language"],
+                course_info["date_start"],
+                course_info["weeks_count"],
+                course_info["user_score"]
             ]
         except TypeError:
             next_row = [url]
@@ -126,7 +123,7 @@ def save_output_courses_to_xlsx(wb, filepath):
 if __name__ == "__main__":
     args = get_args()
     output_file_path = args.output_file_path
-    sitemap_content = connect_to_url(
+    sitemap_content = fetch_content_from_url(
         "https://www.coursera.org/sitemap~www~courses.xml")
     if not sitemap_content:
         exit("The www.coursera.org is unavailable!")
@@ -136,7 +133,8 @@ if __name__ == "__main__":
     )
     courses_info = {}
     for course_url in courses_urls_list:
-        courses_info[course_url] = get_course_info(course_url).values()
+        course_content = fetch_content_from_url(course_url)
+        courses_info[course_url] = get_course_info(course_content)
     workbook, worksheet = make_xlsx_template()
     xlsx_courses_info = output_courses_info_to_xlsx(
         courses_info,
